@@ -1,1 +1,245 @@
-xinchao
+Cơ bản về git
+Editors' Choice
+Mục lục
+Thế nào là repository, branch.
+Làm thế nào để xoá một branch ở phía local, làm thế nào để xoá một branch remote
+Làm thế nào để push một branch ở local lên remote dưới một cái tên khác (Ví dụ như ở local tên branch là task#1, và muốn push lên branch task#2 ở remote)
+Thế nào là git rebase. Phân biệt rebase với merge
+Thế nào là git stash
+Làm thế nào xoá bỏ trạng thái của một vài commit gần đây
+Làm thế nào để gộp một vài commit thành 1 commit duy nhất
+Phân biệt git reset, git reset --hard, git reset --soft
+Nội dung
+Thế nào là repository, branch?
+Repository (kho chứa) được hiểu đơn giản là nơi chứa tất cả những thông tin cần thiết để duy trì và quản lý các sửa đổi và lịch sử của toàn bộ project.
+
+Tất cả dữ liệu của Repository đều được chứa trong thư mục bạn đang làm việc dưới dạng folder ẩn có tên là .git
+
+Repository của Git được phân thành 2 loại là remote repository và local repository.
+
+Remote repository: Là repository để chia sẻ giữa nhiều người và bố trí trên server chuyên dụng.
+Local repository: Là repository bố trí trên máy của bản thân mình, dành cho một người dùng sử dụng.
+Branch là nhánh của repository:
+
+Một nhánh tương tự như một không gian làm việc (workspace): dùng để ghi lại lịch sử sửa đổi.
+Các nhánh độc lập với nhau: phát triển tính năng của 1 nhánh sẽ không làm ảnh hưởng đến các nhánh khác.
+Các nhánh có thể hợp nhất lại với nhau. Thao tác này được gọi là merge.
+Nhánh mặc định là master.
+Các loại branch:
+
+Branch local: là branch lưu ở local (tất nhiên rồi). Nó có thể được liên kết với 1 branch ở remote hoặc không.
+
+Hiển thị branch có trên local ta dùng lệnh git branch
+
+Branch remote: là branch lưu ở remote. Branch này có thể fetch về local nhưng không tạo thêm branch ở local.
+
+Hiểu đơn giản là bạn có thể tải branch ở remote về nhưng không tạo 1 branch ở local với tên tương tự và tất nhiên sẽ không liên kết nó với một branch local nào cả.
+
+Để hiển thị branch remote có trên local dùng lệnh git branch -r
+
+Xoá một branch
+Xoá một branch ở phía local
+Cách 1:
+
+git branch --delete <branch_name>
+
+hoặc
+
+git branch -d <branch_name>
+
+Cách 2:
+
+git branch --delete --force <branch_name>
+
+hoặc
+
+git branch -D <branch_name>
+
+Xoá một branch remote lưu ở local
+git branch --delete --remotes <remote_name>/<branch_name>
+
+hoặc
+
+git branch -d -r <remote_name>/<branch_name>
+
+Chú ý:
+
+Cách 1 chỉ xóa được branch local khi nó đã được Merge vào branch hiện tại và nó đã được push lên remote nếu nó có liên kết với một branch remote.
+Cách 2 sẽ xóa được mọi branch kể cả không thỏa mãn điều kiện kể trên.
+Chỉ xóa được branch khi đang ở branch khác
+Xoá một branch ở phía remote
+git push <remote_name> --delete <branch_name>
+
+VD:
+
+git push origin --delete <branch_name>
+
+Chú ý:
+
+Phải checkout ra branch cùng tên với branch trên remote thì mới xóa được. Tức là khi ta đang ở branch develop thì ta không thể xóa branch master trên remote.
+Push một branch ở local lên remote
+2 branch cùng tên
+git push <remote_name> <branch_name>
+
+VD: push branch master lên branch master trên remote
+
+git push origin master
+
+2 branch khác tên
+git push <remote_name> <local_branch>:<remote_branch>
+
+VD: push branch master lên remote với tên là develop
+
+git push origin master:develop
+
+Rebase
+Thế nào là Rebase?
+Rebase là một cách tích hợp các thay đổi từ nhánh này vào nhánh khác.
+
+Ngoài ra Rebase còn có tác dụng gộp các commit thành 1. (sẽ trình bày ở bên dưới)
+
+So sánh Rebase với merge
+|===============|==============================================================================|
+|               |                         F---G---H  develop                                   |
+|  Ban đầu      |                        /                                                     |
+|               |               A---B---C---D---E   master                                     |
+|===============|==============================================================================|
+|               |                 Rebase                  |             Merge                  |
+|===============|=========================================|====================================|
+| Branch        |                 develop                 |             master                 |
+|     hiện tại  |                                         |                                    |
+|---------------|-----------------------------------------|------------------------------------|
+|    Câu lệnh   |           git rebase master             |       git merge develop            |
+|               |       hoặc                              |                                    |
+|               |           git rebase master develop     |                                    |
+|---------------|-----------------------------------------|------------------------------------|
+|               |                   F'---G'---H'  develop |           F---G---H  develop       |
+| Sơ đồ kết quả |                  /                      |          /         \               |
+|               | A---B---C---D---E   master              | A---B---C---D---E---I   master     |
+|---------------|-----------------------------------------|------------------------------------|
+|   Nguyên lý   | - Lưu các commit F, G, H (các commit của| - Tạo một commit mới (I) áp dụng   |
+|               |   develop tính tới cha chung gần nhất)  |   tất cả các thay đổi của các      |
+|               | - Reset develop về commit C             |   commit trên develop tính đến     |
+|               | - Áp dụng các commit của master đến     |   cha chung gần nhất.              |
+|               |   cha chung gần nhất C                  |   Cụ thể ở đây là tất cả các       |
+|               | - Tạo các commit mới F', G', H' theo    |   commit F, G, H                   |
+|               |   sự thay đổi của các commit F, G, H    |                                    |
+|---------------|-----------------------------------------|------------------------------------|
+|    Đặc điểm   | - Các commit của rebase-branch sẽ là    | - Lịch sử commit không bị thay đổi |
+|               |   các commit mới nhất                   |                                    |
+|               | - Lịch sử commit sẽ bị thay đổi         |                                    |
+|               |                                         |                                    |
+|               |                                         |                                    |
+|===============|=========================================|====================================|
+
+Thế nào là git stash
+Git stash được sử dụng khi muốn lưu lại các thay đổi nhưng chưa commit, thường rất hữu dụng khi bạn muốn đổi sang 1 branch khác mà lại đang làm dở ở branch hiện tại.
+
+Lưu toàn bộ nội dung công việc đang làm dở, sử dụng lệnh: git stash save hoặc git stash
+
+Một số lệnh với stash
+
+Xem danh sách stash: git stash list
+Apply stash gần nhất và xóa stash đó: git stash pop
+Apply stash: git stash apply stash@{<index>}
+Xem nội dung stash: git stash show stash@{<index>}
+Xóa stash: git stash drop stash@{<index>}
+Xóa toàn bộ stash: git stash clear
+Xoá bỏ trạng thái của một vài commit
+Cách 1: dùng git reset hard
+
+git reset --hard <commit_id>
+
+Hoặc
+
+git reset --hard HEAD~<index>
+
+VD:
+
+git reset --hard HEAD~2
+
+git reset --hard 2e07fbe
+
+Lệnh này sẽ xóa bỏ toàn bộ các commit trước đó đưa branch về trạng thái của commit có Id được chỉ định.
+
+Cách 2: dùng git revert
+
+git revert <commit_id>
+
+hoặc
+
+git revert HEAD~<index>
+
+VD:
+
+git revert HEAD~1
+
+git revert 2e07fbe
+
+Lệnh này sẽ tạo 1 commit mới với nội dung đảo ngược lại một commit cũ.
+
+Kết quả sau khi commit mới được tạo thì branch sẽ loại bỏ thay đổi của commit cũ.
+
+Các commit mới hơn commit cũ vẫn được giữ nguyên.
+
+Nói đơn giản là chỉ commit được chỉ định sẽ bị xóa bỏ.
+
+Gộp một vài commit thành 1 commit duy nhất
+Để gộp một nhóm commit thành 1 commit duy nhất ta dùng lệnh:
+
+git rebase --interactive <commit_end>
+
+hoặc
+
+git rebase -i <commit_end>
+
+<commit_end> là id của commit cuối trong nhóm cần gộp.
+
+Trong text editor, pick|squash|fixup các commit cần gộp lại sau đó save file và thoát.
+
+Phân biệt git reset, git reset --hard, git reset --soft
+git reset
+Câu lệnh:
+
+git reset HEAD~<index>
+
+hoặc
+
+git reset <commit_id>
+
+Chức năng:
+
+Di chuyển HEAD về vị trí commmit reset.
+Giữ nguyên tất cả các thay đổi của file đến vị trí hiện tại.
+Loại bỏ các thay đổi khỏi stage.
+git reset --hard
+Câu lệnh:
+
+git reset --hard HEAD~<index>
+
+hoặc
+
+git reset --hard <commit_id>
+
+Chức năng:
+
+Di chuyển HEAD về vị trí commmit reset.
+Loại bỏ tất cả sự thay đổi của file sau thời điểm commit reset.
+git reset --soft
+Câu lệnh:
+
+git reset --soft HEAD~<index>
+
+hoặc
+
+git reset --soft <commit_id>
+
+Chức năng:
+
+Di chuyển HEAD về vị trí commmit reset.
+Giữ nguyên tất cả các thay đổi của file đến vị trí hiện tại.
+Giữ nguyên các thay đổi ở stage
+Lệnh này chỉ di chuyển HEAD về vị trí commit. Trạng thái của stage và tất cả sự thay đổi của file sẽ được giữ nguyên.
+
+Kết luận
+Trên đây là một số những điều cần ghi nhớ khi sử dụng GIT. Hi vọng sẽ giúp ích được cho mọi người.
